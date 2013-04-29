@@ -1,4 +1,4 @@
-Watchf(v0.1.2)
+Watchf(v0.1.3)
 -------
 
 *Watchf is a tool to execute commands when file changes*
@@ -22,7 +22,7 @@ Usage:
   watchf options 'pattern'
 Options:
   -c=[]: Add arbitrary command(repeatable)
-  -s=false: To stop the watchf Daemon
+  -s=false: To stop the watchf Daemon(windows is not support)
   -t=100ms: The time sensitive for avoid execute command frequently(time unit: ns/us/ms/s/m/h)
   -v=false: show version
 Variables:

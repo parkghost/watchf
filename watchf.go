@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	Version         = "0.1.2"
+	Version         = "0.1.3"
 	PidFile         = "watchf.pid"
 	Program         = "watchf"
 	ContinueOnError = false
@@ -33,7 +33,7 @@ func main() {
 
 	flag.Var(&commands, "c", "Add arbitrary command(repeatable)")
 	flag.DurationVar(&sensitive, "t", time.Duration(100)*time.Millisecond, "The time sensitive for avoid execute command frequently(time unit: ns/us/ms/s/m/h)")
-	stop := flag.Bool("s", false, "To stop the "+Program+" Daemon")
+	stop := flag.Bool("s", false, "To stop the "+Program+" Daemon(windows is not support)")
 	showVersion := flag.Bool("v", false, "show version")
 
 	flag.Usage = func() {
@@ -68,7 +68,9 @@ func main() {
 	// stop daemon via signal
 	if *stop {
 		daemon := &Daemon{}
-		daemon.Stop()
+		if err := daemon.Stop(); err != nil {
+			fmt.Printf("cannot stop process:%d caused by:\n%s\n", daemon.pid, err)
+		}
 		return
 	}
 
@@ -91,7 +93,7 @@ type Service interface {
 
 type Daemon struct {
 	local   bool
-	process *os.Process
+	pid     int
 	service Service
 }
 
@@ -114,7 +116,12 @@ func (d *Daemon) Stop() (err error) {
 			os.Remove(PidFile)
 			return d.service.stop()
 		} else {
-			err = d.process.Signal(os.Interrupt)
+			var process *os.Process
+			process, err = os.FindProcess(d.pid)
+			if err != nil {
+				return
+			}
+			err = process.Signal(os.Interrupt)
 		}
 	}
 	return
@@ -125,10 +132,10 @@ func (d *Daemon) IsRunning() bool {
 		return true
 	}
 
-	pid, err := getDaemonPid()
+	var err error
+	d.pid, err = getDaemonPid()
 	if err == nil {
-		d.process, err = os.FindProcess(pid)
-		return err == nil
+		return isProcessRunning(d.pid)
 	}
 	return false
 }
@@ -195,13 +202,13 @@ func (w *WatchService) start() (err error) {
 						go execute(w.commands, evt, &running)
 					}
 				} else {
-					break
+					return
 				}
 			case err, ok := <-w.watcher.Error:
 				if ok {
 					checkError(err)
 				} else {
-					break
+					return
 				}
 			}
 		}
