@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	Version         = "0.1.1"
+	Version         = "0.1.2"
 	PidFile         = "watchf.pid"
 	Program         = "watchf"
 	ContinueOnError = false
@@ -33,6 +33,7 @@ func main() {
 	flag.Var(&commands, "c", "Add arbitrary command(repeatable)")
 	flag.BoolVar(&stop, "s", false, "To stop the "+Program+" Daemon")
 	flag.DurationVar(&sensitive, "t", time.Duration(100)*time.Millisecond, "The time sensitive for avoid execute command frequently(time unit: ns/us/ms/s/m/h)")
+	showVersion := flag.Bool("v", false, "show version")
 
 	flag.Usage = func() {
 		fmt.Println("Usage:\n  " + Program + " options 'pattern'")
@@ -52,6 +53,10 @@ func main() {
 	pattern := os.Args[len(os.Args)-1]
 	if pattern == "" {
 		pattern = "*"
+	}
+
+	if *showVersion {
+		fmt.Println("version " + Version)
 	}
 
 	if len(commands) == 0 && !stop {

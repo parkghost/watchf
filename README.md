@@ -1,4 +1,4 @@
-Watchf(v0.1.1)
+Watchf(v0.1.2)
 -------
 
 *Watchf is a tool to execute commands when file changes*
@@ -23,6 +23,7 @@ Options:
   -c=[]: Add arbitrary command(repeatable)
   -s=false: To stop the watchf Daemon
   -t=100ms: The time sensitive for avoid execute command frequently(time unit: ns/us/ms/s/m/h)
+  -v=false: show version
 Variables:
   $f: The filename of changed file
 Example 1:
@@ -32,19 +33,18 @@ Example 2(Daemon):
   watchf -s
 ```
 
-Limitation
+Limitations
 -------
 1. watching changes in subdirectory
 2. execute command with pipline 
 
-Authors
+Author
 -------
 
 **Brandon Chen**
 
 + http://brandonc.me
 + http://github.com/parkghost
-
 
 License
 ---------------------
