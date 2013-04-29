@@ -24,6 +24,8 @@ const (
 	ContinueOnError = false
 )
 
+var quit = make(chan os.Signal, 1)
+
 func main() {
 	// command line parsing
 	var commands StringSet
@@ -98,8 +100,9 @@ func (d *Daemon) Start() (err error) {
 		log.Fatalln(Program + " is already running")
 		return
 	} else {
-		err := ioutil.WriteFile(PidFile, []byte(strconv.Itoa(os.Getpid())), 0644)
-		checkError(err)
+		if err = ioutil.WriteFile(PidFile, []byte(strconv.Itoa(os.Getpid())), 0644); err != nil {
+			return
+		}
 		d.local = true
 		return d.service.start()
 	}
@@ -132,7 +135,8 @@ func (d *Daemon) IsRunning() bool {
 
 func checkError(err error) {
 	if err != nil {
-		log.Fatalln(err)
+		log.Println(err)
+		close(quit)
 	}
 }
 
@@ -145,7 +149,7 @@ func getDaemonPid() (pid int, err error) {
 }
 
 func waitForStop(daemon *Daemon) {
-	quit := make(chan os.Signal, 1)
+
 	signal.Notify(quit, os.Kill, os.Interrupt)
 
 	<-quit
@@ -195,7 +199,7 @@ func (w *WatchService) start() (err error) {
 				}
 			case err, ok := <-w.watcher.Error:
 				if ok {
-					log.Fatalf("watcher error: %s\n", err)
+					checkError(err)
 				} else {
 					break
 				}
