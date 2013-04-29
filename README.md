@@ -5,10 +5,11 @@ Watchf(v0.1.2)
 
 Installation
 -------
-1. install [Go](http://golang.org/doc/install) into your environment
+1. [install Go into your environment](http://golang.org/doc/install) 
 2. install watchf
 
 ```
+go get github.com/parkghost/watchf
 go build github.com/parkghost/watchf
 sudo mv watchf /usr/bin/watchf
 ```

@@ -27,12 +27,11 @@ const (
 func main() {
 	// command line parsing
 	var commands StringSet
-	var stop bool
 	var sensitive time.Duration
 
 	flag.Var(&commands, "c", "Add arbitrary command(repeatable)")
-	flag.BoolVar(&stop, "s", false, "To stop the "+Program+" Daemon")
 	flag.DurationVar(&sensitive, "t", time.Duration(100)*time.Millisecond, "The time sensitive for avoid execute command frequently(time unit: ns/us/ms/s/m/h)")
+	stop := flag.Bool("s", false, "To stop the "+Program+" Daemon")
 	showVersion := flag.Bool("v", false, "show version")
 
 	flag.Usage = func() {
@@ -50,22 +49,22 @@ func main() {
 	}
 	flag.Parse()
 
-	pattern := os.Args[len(os.Args)-1]
-	if pattern == "" {
-		pattern = "*"
-	}
-
 	if *showVersion {
 		fmt.Println("version " + Version)
 	}
 
-	if len(commands) == 0 && !stop {
+	if len(commands) == 0 && !*stop {
 		flag.Usage()
 		os.Exit(-1)
 	}
 
+	pattern := "*"
+	if len(flag.Args()) > 0 {
+		pattern = strings.Trim(strings.Join(flag.Args(), " "), " ")
+	}
+
 	// stop daemon via signal
-	if stop {
+	if *stop {
 		daemon := &Daemon{}
 		daemon.Stop()
 		return
