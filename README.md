@@ -1,4 +1,4 @@
-Watchf(v0.1.3)
+Watchf(v0.1.4)
 -------
 
 *Watchf is a tool to execute commands when file changes*
