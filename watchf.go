@@ -256,15 +256,17 @@ func applyCustomVariable(command string, evt *fsnotify.FileEvent) string {
 }
 
 func runCommand(cmd *exec.Cmd) (err error) {
-	writer := &bytes.Buffer{}
-	cmd.Stderr = writer
-	cmd.Stdout = writer
+	buffer := &bytes.Buffer{}
+	cmd.Stderr = buffer
+	cmd.Stdout = buffer
 
 	if err = cmd.Run(); err != nil {
 		log.Printf("run \"%s\" failed, err: %s\n", strings.Join(cmd.Args, " "), err)
 	}
 
-	fmt.Println(string(writer.Bytes()))
+	if len(buffer.Bytes()) > 0 {
+		fmt.Println(string(buffer.Bytes()))
+	}
 	return
 }
 
