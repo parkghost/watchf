@@ -21,16 +21,18 @@ Usage
 Usage:
   watchf options 'pattern'
 Options:
-  -c=[]: Add arbitrary command(repeatable)
-  -s=false: To stop the watchf Daemon(windows is not support)
-  -t=100ms: The time sensitive for avoid execute command frequently(time unit: ns/us/ms/s/m/h)
+  -c=[]: Add arbitrary command (repeatable)
+  -s=false: To stop the watchf Daemon (windows is not support)
+  -t=100ms: The time sensitive for avoid execute command frequently (time unit: ns/us/ms/s/m/h)
   -v=false: show version
 Variables:
   $f: The filename of changed file
+  $t: The event type of file changes (event type: CREATE/MODIFY/DELETE/RENAME)
+
 Example 1:
   watchf -c 'go vet' -c 'go test' -c 'go install' '*.go'
 Example 2(Daemon):
-  watchf -c 'chmod 644 $f' '*.exe' &
+  watchf -c 'process.sh $f $t' '*.exe' &
   watchf -s
 ```
 

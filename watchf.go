@@ -31,9 +31,9 @@ func main() {
 	var commands StringSet
 	var sensitive time.Duration
 
-	flag.Var(&commands, "c", "Add arbitrary command(repeatable)")
-	flag.DurationVar(&sensitive, "t", time.Duration(100)*time.Millisecond, "The time sensitive for avoid execute command frequently(time unit: ns/us/ms/s/m/h)")
-	stop := flag.Bool("s", false, "To stop the "+Program+" Daemon(windows is not support)")
+	flag.Var(&commands, "c", "Add arbitrary command (repeatable)")
+	flag.DurationVar(&sensitive, "t", time.Duration(100)*time.Millisecond, "The time sensitive for avoid execute command frequently (time unit: ns/us/ms/s/m/h)")
+	stop := flag.Bool("s", false, "To stop the "+Program+" Daemon (windows is not support)")
 	showVersion := flag.Bool("v", false, "show version")
 
 	flag.Usage = func() {
@@ -42,11 +42,12 @@ func main() {
 		flag.PrintDefaults()
 		fmt.Println("Variables:")
 		fmt.Println("  $f: The filename of changed file")
-
+		fmt.Println("  $t: The event type of file changes (event type: CREATE/MODIFY/DELETE/RENAME)")
+		fmt.Println()
 		fmt.Println("Example 1:")
 		fmt.Println("  " + Program + " -c 'go vet' -c 'go test' -c 'go install' '*.go'")
 		fmt.Println("Example 2(Daemon):")
-		fmt.Println("  " + Program + " -c 'chmod 644 $f' '*.exe' &")
+		fmt.Println("  " + Program + " -c 'process.sh $f $t' '*.exe' &")
 		fmt.Println("  " + Program + " -s")
 	}
 	flag.Parse()
@@ -252,7 +253,22 @@ func execute(commands []string, evt *fsnotify.FileEvent, running *int32) {
 }
 
 func applyCustomVariable(command string, evt *fsnotify.FileEvent) string {
-	return strings.Replace(command, "$f", evt.Name, -1)
+	command = strings.Replace(command, "$f", evt.Name, -1)
+
+	eventType := ""
+	switch {
+	case evt.IsCreate():
+		eventType = "CREATE"
+	case evt.IsModify():
+		eventType = "MODIFY"
+	case evt.IsDelete():
+		eventType = "DELETE"
+	case evt.IsRename():
+		eventType = "RENAME"
+	}
+	command = strings.Replace(command, "$t", eventType, -1)
+
+	return command
 }
 
 func runCommand(cmd *exec.Cmd) (err error) {
