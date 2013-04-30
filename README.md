@@ -32,7 +32,7 @@ Variables:
 Example 1:
   watchf -c 'go vet' -c 'go test' -c 'go install' '*.go'
 Example 2(Daemon):
-  watchf -c 'process.sh $f $t' '*.exe' &
+  watchf -c 'process.sh $f $t' '*.txt' &
   watchf -s
 ```
 

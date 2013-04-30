@@ -47,7 +47,7 @@ func main() {
 		fmt.Println("Example 1:")
 		fmt.Println("  " + Program + " -c 'go vet' -c 'go test' -c 'go install' '*.go'")
 		fmt.Println("Example 2(Daemon):")
-		fmt.Println("  " + Program + " -c 'process.sh $f $t' '*.exe' &")
+		fmt.Println("  " + Program + " -c 'process.sh $f $t' '*.txt' &")
 		fmt.Println("  " + Program + " -s")
 	}
 	flag.Parse()
