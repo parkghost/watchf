@@ -1,6 +1,6 @@
 // +build linux freebsd openbsd netbsd darwin
 
-package main
+package daemon
 
 import "syscall"
 
