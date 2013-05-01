@@ -19,12 +19,18 @@ Usage
 
 ```
 Usage:
-  watchf options 'pattern'
+  watchf options ['pattern']
 Options:
   -c=[]: Add arbitrary command (repeatable)
   -s=false: To stop the watchf Daemon (windows is not support)
   -t=100ms: The time sensitive for avoid execute command frequently (time unit: ns/us/ms/s/m/h)
   -v=false: show version
+Pattern:
+  '*'         matches any sequence of non-Separator characters e.g. '*.txt'
+  '?'         matches any single non-Separator character       e.g. 'ab?.txt'
+  '[' [ '^' ] { character-range } ']'                          e.g. 'ab[b-d].txt'
+              character class (must be non-empty)
+   c          matches character c (c != '*', '?', '\\', '[')   e.g. 'abc.txt'
 Variables:
   $f: The filename of changed file
   $t: The event type of file changes (event type: CREATE/MODIFY/DELETE/RENAME)

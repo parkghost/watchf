@@ -36,9 +36,17 @@ func init() {
 
 	flag.Usage = func() {
 		command := os.Args[0]
-		fmt.Println("Usage:\n  " + command + " options 'pattern'")
+		fmt.Println("Usage:\n  " + command + " options ['pattern']")
 		fmt.Println("Options:")
 		flag.PrintDefaults()
+
+		fmt.Println(`Pattern:
+  '*'         matches any sequence of non-Separator characters e.g. '*.txt'
+  '?'         matches any single non-Separator character       e.g. 'ab?.txt'
+  '[' [ '^' ] { character-range } ']'                          e.g. 'ab[b-d].txt'
+              character class (must be non-empty)
+   c          matches character c (c != '*', '?', '\\', '[')   e.g. 'abc.txt'`)
+
 		fmt.Println("Variables:")
 		fmt.Println("  $f: The filename of changed file")
 		fmt.Println("  $t: The event type of file changes (event type: CREATE/MODIFY/DELETE/RENAME)")
