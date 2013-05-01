@@ -40,7 +40,7 @@ func init() {
 		fmt.Println("Options:")
 		flag.PrintDefaults()
 
-		fmt.Println(`Pattern:
+		fmt.Println(`Patterns:
   '*'         matches any sequence of non-Separator characters e.g. '*.txt'
   '?'         matches any single non-Separator character       e.g. 'ab?.txt'
   '[' [ '^' ] { character-range } ']'                          e.g. 'ab[b-d].txt'
