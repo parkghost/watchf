@@ -35,7 +35,8 @@ func init() {
 	flag.BoolVar(&showVersion, "v", false, "show version")
 
 	flag.Usage = func() {
-		fmt.Println("Usage:\n  " + Program + " options 'pattern'")
+		command := os.Args[0]
+		fmt.Println("Usage:\n  " + command + " options 'pattern'")
 		fmt.Println("Options:")
 		flag.PrintDefaults()
 		fmt.Println("Variables:")
@@ -43,10 +44,10 @@ func init() {
 		fmt.Println("  $t: The event type of file changes (event type: CREATE/MODIFY/DELETE/RENAME)")
 		fmt.Println()
 		fmt.Println("Example 1:")
-		fmt.Println("  " + Program + " -c 'go vet' -c 'go test' -c 'go install' '*.go'")
+		fmt.Println("  " + command + " -c 'go vet' -c 'go test' -c 'go install' '*.go'")
 		fmt.Println("Example 2(Daemon):")
-		fmt.Println("  " + Program + " -c 'process.sh $f $t' '*.txt' &")
-		fmt.Println("  " + Program + " -s")
+		fmt.Println("  " + command + " -c 'process.sh $f $t' '*.txt' &")
+		fmt.Println("  " + command + " -s")
 	}
 
 }
