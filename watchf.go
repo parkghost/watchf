@@ -45,12 +45,12 @@ func init() {
   '?'         matches any single non-Separator character       e.g. 'ab?.txt'
   '[' [ '^' ] { character-range } ']'                          e.g. 'ab[b-d].txt'
               character class (must be non-empty)
-   c          matches character c (c != '*', '?', '\\', '[')   e.g. 'abc.txt'`)
+   c          matches character c (c != '*', '?', '\\', '[')   e.g. 'abc.txt'
+Variables:
+  $f: The filename of changed file
+  $t: The event type of file changes (event type: CREATE/MODIFY/DELETE/RENAME)
+  `)
 
-		fmt.Println("Variables:")
-		fmt.Println("  $f: The filename of changed file")
-		fmt.Println("  $t: The event type of file changes (event type: CREATE/MODIFY/DELETE/RENAME)")
-		fmt.Println()
 		fmt.Println("Example 1:")
 		fmt.Println("  " + command + " -c 'go vet' -c 'go test' -c 'go install' '*.go'")
 		fmt.Println("Example 2(Daemon):")
