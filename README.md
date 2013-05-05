@@ -1,4 +1,4 @@
-Watchf(v0.1.5)
+Watchf(v0.1.6)
 -------
 
 *Watchf is a tool to execute commands when file changes*
@@ -46,6 +46,7 @@ Limitations
 -------
 1. watching changes in subdirectory
 2. execute command with pipline 
+3. execute command after file closed
 
 Author
 -------

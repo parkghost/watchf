@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	Version         = "0.1.5"
+	Version         = "0.1.6"
 	Program         = "watchf"
 	ContinueOnError = false
 )
@@ -72,7 +72,7 @@ func main() {
 	}
 
 	// start daemon
-	daemon := daemon.NewDaemon(Program, &WatchService{".", pattern, sensitive, commands, nil, os.Stdout, os.Stderr})
+	daemon := daemon.NewDaemon(Program, NewWatchService(".", pattern, sensitive, commands))
 	checkError(daemon.Start())
 
 	// stop daemon
