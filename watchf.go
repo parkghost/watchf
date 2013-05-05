@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	Version         = "0.1.6"
+	Version         = "0.1.7"
 	Program         = "watchf"
 	ContinueOnError = false
 )
@@ -23,6 +23,7 @@ var (
 	stop        bool
 	showVersion bool
 	pattern     = "*"
+	verbose     bool
 
 	quit = make(chan os.Signal, 1)
 )
@@ -30,9 +31,10 @@ var (
 func init() {
 
 	flag.Var(&commands, "c", "Add arbitrary command (repeatable)")
-	flag.DurationVar(&sensitive, "t", time.Duration(100)*time.Millisecond, "The time sensitive for avoid execute command frequently (time unit: ns/us/ms/s/m/h)")
+	flag.DurationVar(&sensitive, "t", time.Duration(500)*time.Millisecond, "The time sensitive for avoid execute command frequently (time unit: ns/us/ms/s/m/h)")
 	flag.BoolVar(&stop, "s", false, "To stop the "+Program+" Daemon (windows is not support)")
 	flag.BoolVar(&showVersion, "v", false, "show version")
+	flag.BoolVar(&verbose, "V", false, "show debugging message")
 
 	flag.Usage = func() {
 		command := os.Args[0]
@@ -82,8 +84,12 @@ func main() {
 func parseOptions() {
 	flag.Parse()
 
-	if showVersion {
+	if showVersion || verbose {
 		fmt.Println("version " + Version)
+	}
+
+	if verbose {
+		log.Println("command-line arguments", os.Args[1:])
 	}
 
 	if len(commands) == 0 && !stop {

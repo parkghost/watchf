@@ -1,4 +1,4 @@
-Watchf(v0.1.6)
+Watchf(v0.1.7)
 -------
 
 *Watchf is a tool to execute commands when file changes*
@@ -21,9 +21,10 @@ Usage
 Usage:
   watchf options ['pattern']
 Options:
+  -V=false: show debugging message
   -c=[]: Add arbitrary command (repeatable)
   -s=false: To stop the watchf Daemon (windows is not support)
-  -t=100ms: The time sensitive for avoid execute command frequently (time unit: ns/us/ms/s/m/h)
+  -t=500ms: The time sensitive for avoid execute command frequently (time unit: ns/us/ms/s/m/h)
   -v=false: show version
 Patterns:
   '*'         matches any sequence of non-Separator characters e.g. '*.txt'
@@ -34,7 +35,7 @@ Patterns:
 Variables:
   $f: The filename of changed file
   $t: The event type of file changes (event type: CREATE/MODIFY/DELETE/RENAME)
-
+  
 Example 1:
   watchf -c 'go vet' -c 'go test' -c 'go install' '*.go'
 Example 2(Daemon):
@@ -45,8 +46,7 @@ Example 2(Daemon):
 Limitations
 -------
 1. watching changes in subdirectory
-2. execute command with pipline 
-3. execute command after file closed
+2. execute command after file closed
 
 Author
 -------
