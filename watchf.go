@@ -7,22 +7,23 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strings"
+	"regexp"
 	"time"
 )
 
 const (
-	Version         = "0.1.7"
+	Version         = "0.1.8"
 	Program         = "watchf"
 	ContinueOnError = false
 )
 
 var (
 	commands    StringSet
-	sensitive   time.Duration
+	interval    time.Duration
 	stop        bool
 	showVersion bool
-	pattern     = "*"
+	regexExpr   string
+	pattern     *regexp.Regexp
 	verbose     bool
 
 	quit = make(chan os.Signal, 1)
@@ -31,32 +32,27 @@ var (
 func init() {
 
 	flag.Var(&commands, "c", "Add arbitrary command (repeatable)")
-	flag.DurationVar(&sensitive, "t", time.Duration(500)*time.Millisecond, "The time sensitive for avoid execute command frequently (time unit: ns/us/ms/s/m/h)")
+	flag.StringVar(&regexExpr, "e", ".*", "File name matches regular expression pattern (perl-style)")
+	flag.DurationVar(&interval, "i", time.Duration(0)*time.Millisecond, "The interval limit the frequency of the execution of commands, if equal to 0, there is no limit (time unit: ns/us/ms/s/m/h)")
 	flag.BoolVar(&stop, "s", false, "To stop the "+Program+" Daemon (windows is not support)")
 	flag.BoolVar(&showVersion, "v", false, "show version")
 	flag.BoolVar(&verbose, "V", false, "show debugging message")
 
 	flag.Usage = func() {
 		command := os.Args[0]
-		fmt.Println("Usage:\n  " + command + " options ['pattern']")
+		fmt.Println("Usage:\n  " + command + " options")
 		fmt.Println("Options:")
 		flag.PrintDefaults()
 
-		fmt.Println(`Patterns:
-  '*'         matches any sequence of non-Separator characters e.g. '*.txt'
-  '?'         matches any single non-Separator character       e.g. 'ab?.txt'
-  '[' [ '^' ] { character-range } ']'                          e.g. 'ab[b-d].txt'
-              character class (must be non-empty)
-   c          matches character c (c != '*', '?', '\\', '[')   e.g. 'abc.txt'
-Variables:
+		fmt.Println(`Variables:
   $f: The filename of changed file
-  $t: The event type of file changes (event type: CREATE/MODIFY/DELETE/RENAME)
+  $t: The event type of file changes (event type: CREATE/MODIFY/DELETE)
   `)
 
 		fmt.Println("Example 1:")
-		fmt.Println("  " + command + " -c 'go vet' -c 'go test' -c 'go install' '*.go'")
+		fmt.Println("  " + command + " -c 'go vet' -c 'go test' -c 'go install' -e '\\.go$'")
 		fmt.Println("Example 2(Daemon):")
-		fmt.Println("  " + command + " -c 'process.sh $f $t' '*.txt' &")
+		fmt.Println("  " + command + " -c 'process.sh $f $t' -e '\\.txt$' &")
 		fmt.Println("  " + command + " -s")
 	}
 
@@ -74,7 +70,7 @@ func main() {
 	}
 
 	// start daemon
-	daemon := daemon.NewDaemon(Program, NewWatchService(".", pattern, sensitive, commands))
+	daemon := daemon.NewDaemon(Program, NewWatchService(".", pattern, interval, commands))
 	checkError(daemon.Start())
 
 	// stop daemon
@@ -97,8 +93,11 @@ func parseOptions() {
 		os.Exit(-1)
 	}
 
-	if len(flag.Args()) > 0 {
-		pattern = strings.Trim(strings.Join(flag.Args(), " "), " ")
+	var err error
+	pattern, err = regexp.Compile(regexExpr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(-1)
 	}
 }
 
