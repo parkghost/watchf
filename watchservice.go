@@ -142,7 +142,7 @@ func (w *WatchService) addWatcher() error {
 					return errWatcher
 				}
 			} else {
-				log.Print("path: %s, err: %s\n", relativePath, err)
+				log.Printf("path: %s, err: %s\n", relativePath, err)
 			}
 		}
 		return nil
