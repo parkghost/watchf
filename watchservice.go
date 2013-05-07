@@ -332,8 +332,8 @@ func checkContentWasChanged(entries map[string]*FileEntry, evt *fsnotify.FileEve
 }
 
 func applyCustomVariable(command string, evt *fsnotify.FileEvent) string {
-	command = strings.Replace(command, "$f", evt.Name, -1)
-	command = strings.Replace(command, "$t", getEventType(evt), -1)
+	command = strings.Replace(command, VarFilename, evt.Name, -1)
+	command = strings.Replace(command, VarEventType, getEventType(evt), -1)
 
 	return command
 }

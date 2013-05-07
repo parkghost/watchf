@@ -28,13 +28,15 @@ Options:
   -s=false: To stop the watchf Daemon (windows is not support)
   -v=false: show version
 Variables:
-  $f: The filename of changed file
-  $t: The event type of file changes (event type: CREATE/MODIFY/DELETE)
-  
+  %f: The filename of changed file
+  %t: The event type of file changes (event type: CREATE/MODIFY/DELETE)
+
 Example 1:
-  watchf -c 'go vet' -c 'go test' -c 'go install' -e '\.go$'
-Example 2(Daemon):
-  watchf -c 'process.sh $f $t' -e '\.txt$' &
+  watchf -c "go vet" -c "go test" -c "go install" -e "\.go$"
+Example 2(Custom Variable):
+  watchf -c "process.sh %f %t" -e "\.txt$"
+Example 3(Daemon):
+  watchf -c "rsync -aq $SRC $DST" &
   watchf -s
 ```
 

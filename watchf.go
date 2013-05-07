@@ -12,9 +12,14 @@ import (
 )
 
 const (
-	Version         = "0.1.8"
+	Version         = "0.1.9"
 	Program         = "watchf"
 	ContinueOnError = false
+)
+
+const (
+	VarFilename  = "%f"
+	VarEventType = "%t"
 )
 
 var (
@@ -44,15 +49,17 @@ func init() {
 		fmt.Println("Options:")
 		flag.PrintDefaults()
 
-		fmt.Println(`Variables:
-  $f: The filename of changed file
-  $t: The event type of file changes (event type: CREATE/MODIFY/DELETE)
-  `)
+		fmt.Printf("Variables:\n"+
+			"  %s: The filename of changed file\n"+
+			"  %s: The event type of file changes (event type: CREATE/MODIFY/DELETE)\n\n",
+			VarFilename, VarEventType)
 
 		fmt.Println("Example 1:")
-		fmt.Println("  " + command + " -c 'go vet' -c 'go test' -c 'go install' -e '\\.go$'")
-		fmt.Println("Example 2(Daemon):")
-		fmt.Println("  " + command + " -c 'process.sh $f $t' -e '\\.txt$' &")
+		fmt.Println("  " + command + " -c \"go vet\" -c \"go test\" -c \"go install\" -e \"\\.go$\"")
+		fmt.Println("Example 2(Custom Variable):")
+		fmt.Println("  " + command + " -c \"process.sh %f %t\" -e \"\\.txt$\"")
+		fmt.Println("Example 3(Daemon):")
+		fmt.Println("  " + command + " -c \"rsync -aq $SRC $DST\" &")
 		fmt.Println("  " + command + " -s")
 	}
 
