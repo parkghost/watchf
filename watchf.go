@@ -8,11 +8,12 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
+	"strings"
 	"time"
 )
 
 const (
-	Version         = "0.1.9"
+	Version         = "0.2.0"
 	Program         = "watchf"
 	ContinueOnError = false
 )
@@ -24,24 +25,29 @@ const (
 
 var (
 	commands    StringSet
+	events      string
 	interval    time.Duration
 	stop        bool
 	showVersion bool
+	recursive   bool
 	regexExpr   string
-	pattern     *regexp.Regexp
 	verbose     bool
 
-	quit = make(chan os.Signal, 1)
+	watchFlags uint32
+	pattern    *regexp.Regexp
+	quit       = make(chan os.Signal, 1)
 )
 
 func init() {
 
 	flag.Var(&commands, "c", "Add arbitrary command (repeatable)")
-	flag.StringVar(&regexExpr, "e", ".*", "File name matches regular expression pattern (perl-style)")
-	flag.DurationVar(&interval, "i", time.Duration(0)*time.Millisecond, "The interval limit the frequency of the execution of commands, if equal to 0, there is no limit (time unit: ns/us/ms/s/m/h)")
-	flag.BoolVar(&stop, "s", false, "To stop the "+Program+" Daemon (windows is not support)")
-	flag.BoolVar(&showVersion, "v", false, "show version")
-	flag.BoolVar(&verbose, "V", false, "show debugging message")
+	flag.StringVar(&events, "e", "all", "Listen for specific event(s) (comma separated list)")
+	flag.StringVar(&regexExpr, "p", ".*", "File name matches regular expression pattern (perl-style)")
+	flag.DurationVar(&interval, "i", time.Duration(0)*time.Millisecond, "The interval limit the frequency of the command executions, if equal to 0, there is no limit (time unit: ns/us/ms/s/m/h)")
+	flag.BoolVar(&stop, "s", false, "Stop the "+Program+" Daemon (windows is not support)")
+	flag.BoolVar(&recursive, "r", false, "Watch directories recursively")
+	flag.BoolVar(&showVersion, "v", false, "Show version")
+	flag.BoolVar(&verbose, "V", false, "Show debugging messages")
 
 	flag.Usage = func() {
 		command := os.Args[0]
@@ -49,20 +55,34 @@ func init() {
 		fmt.Println("Options:")
 		flag.PrintDefaults()
 
+		maxLen := maxLenOfEventName()
+		fmt.Println("Events:")
+		for _, e := range GeneralEventBits {
+			fmt.Printf("  %s  %s\n", paddingStr(strings.ToLower(e.Name), maxLen, " "), e.Desc)
+		}
+
 		fmt.Printf("Variables:\n"+
 			"  %s: The filename of changed file\n"+
-			"  %s: The event type of file changes (event type: CREATE/MODIFY/DELETE)\n\n",
+			"  %s: The event type of file changes\n",
 			VarFilename, VarEventType)
 
-		fmt.Println("Example 1:")
-		fmt.Println("  " + command + " -c \"go vet\" -c \"go test\" -c \"go install\" -e \"\\.go$\"")
-		fmt.Println("Example 2(Custom Variable):")
-		fmt.Println("  " + command + " -c \"process.sh %f %t\" -e \"\\.txt$\"")
-		fmt.Println("Example 3(Daemon):")
-		fmt.Println("  " + command + " -c \"rsync -aq $SRC $DST\" &")
-		fmt.Println("  " + command + " -s")
+		showExample()
 	}
 
+}
+
+func maxLenOfEventName() int {
+	maxLenOfName := 0
+	for _, event := range GeneralEventBits {
+		if maxLenOfName < len(event.Name) {
+			maxLenOfName = len(event.Name)
+		}
+	}
+	return maxLenOfName
+}
+
+func paddingStr(original string, maxLen int, char string) string {
+	return original + strings.Repeat(char, maxLen-len(original))
 }
 
 func main() {
@@ -77,7 +97,7 @@ func main() {
 	}
 
 	// start daemon
-	daemon := daemon.NewDaemon(Program, NewWatchService(".", pattern, interval, commands))
+	daemon := daemon.NewDaemon(Program, NewWatchService(".", watchFlags, recursive, pattern, interval, commands))
 	checkError(daemon.Start())
 
 	// stop daemon
@@ -101,6 +121,12 @@ func parseOptions() {
 	}
 
 	var err error
+	if watchFlags, err = getFlagsValue(events); err != nil {
+		log.Println(err)
+		flag.Usage()
+		os.Exit(-1)
+	}
+
 	pattern, err = regexp.Compile(regexExpr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

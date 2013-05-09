@@ -1,4 +1,4 @@
-Watchf(v0.1.9)
+Watchf(v0.2.0)
 -------
 
 *Watchf is a tool to watching directory for changes and execute command*
@@ -21,28 +21,31 @@ Usage
 Usage:
   watchf options
 Options:
-  -V=false: show debugging message
+  -V=false: Show debugging messages
   -c=[]: Add arbitrary command (repeatable)
-  -e=".*": File name matches regular expression pattern (perl-style)
-  -i=0: The interval limit the frequency of the execution of commands, if equal to 0, there is no limit (time unit: ns/us/ms/s/m/h)
-  -s=false: To stop the watchf Daemon (windows is not support)
-  -v=false: show version
+  -e="all": Listen for specific event(s) (comma separated list)
+  -i=0: The interval limit the frequency of the command executions, if equal to 0, there is no limit (time unit: ns/us/ms/s/m/h)
+  -p=".*": File name matches regular expression pattern (perl-style)
+  -r=false: Watch directories recursively
+  -s=false: Stop the watchf Daemon (windows is not support)
+  -v=false: Show version
+Events:
+  all     Create/Delete/Modify/Rename
+  create  File/directory created in watched directory
+  delete  File/directory deleted from watched directory
+  modify  File was modified or Metadata changed
+  rename  File moved out of watched directory
 Variables:
   %f: The filename of changed file
-  %t: The event type of file changes (event type: CREATE/MODIFY/DELETE)
-
+  %t: The event type of file changes
 Example 1:
-  watchf -c "go vet" -c "go test" -c "go install" -e "\.go$"
+  watchf -e "modify,delete" -c "go vet" -c "go test" -c "go install" -p "\.go$"
 Example 2(Custom Variable):
-  watchf -c "process.sh %f %t" -e "\.txt$"
+  watchf -c "process.sh %f %t"
 Example 3(Daemon):
-  watchf -c "rsync -aq $SRC $DST" &
+  watchf -r -c "rsync -aq $SRC $DST" &
   watchf -s
 ```
-
-Limitations
--------
-1. execute command after file closed
 
 Author
 -------

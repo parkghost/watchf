@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"code.google.com/p/go.exp/fsnotify"
+	"errors"
 	"fmt"
 	"hash/adler32"
 	"io"
@@ -23,27 +24,27 @@ const (
 )
 
 type WatchService struct {
-	path     string
-	pattern  *regexp.Regexp
-	interval time.Duration
-	commands []string
-	Stdout   io.Writer
-	Stderr   io.Writer
-	watcher  *fsnotify.Watcher
-	dirs     map[string]bool
-	entries  map[string]*FileEntry
+	path       string
+	watchFlags uint32
+	recursive  bool
+	pattern    *regexp.Regexp
+	interval   time.Duration
+	commands   []string
+	Stdout     io.Writer
+	Stderr     io.Writer
+	watcher    *fsnotify.Watcher
+	dirs       map[string]bool
+	entries    map[string]*FileEntry
 }
 
-func NewWatchService(path string, pattern *regexp.Regexp, interval time.Duration, commands []string) *WatchService {
-	return &WatchService{path, pattern, interval, commands, os.Stdout, os.Stderr, nil, make(map[string]bool), make(map[string]*FileEntry)}
+func NewWatchService(path string, watchFlags uint32, recursive bool, pattern *regexp.Regexp, interval time.Duration, commands []string) *WatchService {
+	return &WatchService{path, watchFlags, recursive, pattern, interval, commands, os.Stdout, os.Stderr, nil, make(map[string]bool), make(map[string]*FileEntry)}
 }
 
 func (w *WatchService) Start() (err error) {
-
 	ch := make(chan *fsnotify.FileEvent, EventBufSize)
 	w.startWatcher(ch)
 	w.startWorker(ch)
-
 	return
 }
 
@@ -53,13 +54,9 @@ func (w *WatchService) isDir(path string) bool {
 }
 
 func (w *WatchService) startWorker(ch <-chan *fsnotify.FileEvent) {
-
 	go func() {
-
 		var lastExec time.Time
-
 		for evt := range ch {
-
 			if verbose {
 				log.Printf("%s: %s", getEventType(evt), evt.Name)
 			}
@@ -70,7 +67,6 @@ func (w *WatchService) startWorker(ch <-chan *fsnotify.FileEvent) {
 			if evt.IsRename() {
 				continue
 			}
-			//
 
 			if checkPatternMatching(w.pattern, evt) && checkExecInterval(lastExec, w.interval, time.Now()) {
 				if w.isDir(evt.Name) {
@@ -126,29 +122,31 @@ func (w *WatchService) startWatcher(ch chan<- *fsnotify.FileEvent) (err error) {
 	return
 }
 
-func (w *WatchService) addWatcher() error {
+func (w *WatchService) addWatcher() (err error) {
+	if w.recursive {
+		err = filepath.Walk(w.path, func(path string, info os.FileInfo, err error) error {
+			if info.IsDir() {
+				relativePath := "./" + path
+				if err == nil {
 
-	err := filepath.Walk(w.path, func(path string, info os.FileInfo, err error) error {
-		if info.IsDir() {
-			relativePath := "./" + path
-			if err == nil {
-
-				w.dirs[relativePath] = true
-				if verbose {
-					log.Println("watching: ", relativePath)
+					w.dirs[relativePath] = true
+					if verbose {
+						log.Println("watching: ", relativePath)
+					}
+					errWatcher := w.watcher.WatchFlags(path, w.watchFlags)
+					if errWatcher != nil {
+						return errWatcher
+					}
+				} else {
+					log.Printf("path: %s, err: %s\n", relativePath, err)
 				}
-				errWatcher := w.watcher.Watch(path)
-				if errWatcher != nil {
-					return errWatcher
-				}
-			} else {
-				log.Printf("path: %s, err: %s\n", relativePath, err)
 			}
-		}
-		return nil
-	})
-	return err
-
+			return nil
+		})
+	} else {
+		err = w.watcher.WatchFlags(w.path, w.watchFlags)
+	}
+	return
 }
 
 func (w *WatchService) updateWatcherAndEntries(evt *fsnotify.FileEvent) {
@@ -166,7 +164,7 @@ func (w *WatchService) updateWatcherAndEntries(evt *fsnotify.FileEvent) {
 					log.Println("watching: ", path)
 				}
 				w.dirs[path] = true
-				w.watcher.Watch(path)
+				w.watcher.WatchFlags(path, w.watchFlags)
 			}
 		}
 
@@ -204,10 +202,9 @@ func (w *WatchService) run(evt *fsnotify.FileEvent) {
 }
 
 func (w *WatchService) execute(command string, evt *fsnotify.FileEvent) (err error) {
-
 	command = applyCustomVariable(command, evt)
-
 	args := strings.Split(command, " ")
+
 	var cmd *exec.Cmd
 
 	if len(args) > 1 {
@@ -274,7 +271,6 @@ func checkExecInterval(lastExec time.Time, interval time.Duration, now time.Time
 
 func checkContentWasChanged(entries map[string]*FileEntry, evt *fsnotify.FileEvent) bool {
 	return verboseMsgWrapper("check content was changed", func() bool {
-
 		path := evt.Name
 
 		if evt.IsModify() {
@@ -334,7 +330,6 @@ func checkContentWasChanged(entries map[string]*FileEntry, evt *fsnotify.FileEve
 func applyCustomVariable(command string, evt *fsnotify.FileEvent) string {
 	command = strings.Replace(command, VarFilename, evt.Name, -1)
 	command = strings.Replace(command, VarEventType, getEventType(evt), -1)
-
 	return command
 }
 
@@ -359,7 +354,6 @@ func newFileEntry(filename string) (entry *FileEntry, err error) {
 }
 
 func getFilesizeWithRetry(path string) (contentSize int64, err error) {
-
 	contentSize, err = getFilesize(path)
 	if err != nil {
 		log.Println(err)
@@ -422,6 +416,7 @@ func getContentHash(filename string) (sum uint32, err error) {
 
 func getEventType(evt *fsnotify.FileEvent) string {
 	eventType := ""
+
 	switch {
 	case evt.IsCreate():
 		eventType = "ENTRY_CREATE"
@@ -433,4 +428,45 @@ func getEventType(evt *fsnotify.FileEvent) string {
 		eventType = "ENTRY_RENAME"
 	}
 	return eventType
+}
+
+var GeneralEventBits = []struct {
+	Value uint32
+	Name  string
+	Desc  string
+}{
+	{fsnotify.FSN_ALL, "all", "Create/Delete/Modify/Rename"},
+	{fsnotify.FSN_CREATE, "create", "File/directory created in watched directory"},
+	{fsnotify.FSN_DELETE, "delete", "File/directory deleted from watched directory"},
+	{fsnotify.FSN_MODIFY, "modify", "File was modified or Metadata changed"},
+	{fsnotify.FSN_RENAME, "rename", "File moved out of watched directory"},
+}
+
+func getFlagsValue(events string) (flagVar uint32, err error) {
+	eventList := strings.Split(strings.Replace(events, " ", "", -1), ",")
+
+	for _, item := range eventList {
+		found := false
+		for _, event := range GeneralEventBits {
+			if item == strings.ToLower(event.Name) {
+				flagVar = flagVar | event.Value
+				found = true
+			}
+		}
+
+		if !found {
+			err = errors.New(fmt.Sprintf("the event %s was not found", item))
+			return
+		}
+	}
+
+	if verbose {
+		log.Println("watching events:")
+		for _, event := range GeneralEventBits {
+			if flagVar&event.Value == event.Value {
+				fmt.Printf("  %s\n", event.Name)
+			}
+		}
+	}
+	return
 }
