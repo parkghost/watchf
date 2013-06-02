@@ -21,24 +21,76 @@ const (
 	FileBlockSize = 1 * 1024 * 1024
 	EventBufSize  = 1024 * 1024
 	WritingDelay  = time.Duration(100) * time.Millisecond
+	VarFilename   = "%f"
+	VarEventType  = "%t"
 )
 
 type WatchService struct {
-	path       string
-	watchFlags uint32
-	recursive  bool
-	pattern    *regexp.Regexp
-	interval   time.Duration
-	commands   []string
-	Stdout     io.Writer
-	Stderr     io.Writer
-	watcher    *fsnotify.Watcher
-	dirs       map[string]bool
-	entries    map[string]*FileEntry
+	path   string
+	config *Config
+
+	watcher              *fsnotify.Watcher
+	watchFlags           uint32
+	dirs                 map[string]bool
+	entries              map[string]*FileEntry
+	includePatternRegexp *regexp.Regexp
+
+	Stdout io.Writer
+	Stderr io.Writer
 }
 
-func NewWatchService(path string, watchFlags uint32, recursive bool, pattern *regexp.Regexp, interval time.Duration, commands []string) *WatchService {
-	return &WatchService{path, watchFlags, recursive, pattern, interval, commands, os.Stdout, os.Stderr, nil, make(map[string]bool), make(map[string]*FileEntry)}
+func NewWatchService(path string, config *Config) (service *WatchService, err error) {
+	watchFlags, err := getFlagsValue(config)
+	if err != nil {
+		return
+	}
+
+	includePatternRegexp, err := regexp.Compile(config.IncludePattern)
+	if err != nil {
+		return
+	}
+
+	service = &WatchService{
+		path,
+		config,
+		nil,
+		watchFlags,
+		make(map[string]bool),
+		make(map[string]*FileEntry),
+		includePatternRegexp,
+		os.Stdout,
+		os.Stderr,
+	}
+	return
+}
+
+func getFlagsValue(config *Config) (flagVar uint32, err error) {
+	for _, item := range config.Events {
+		found := false
+		for _, event := range GeneralEventBits {
+			if item == strings.ToLower(event.Name) {
+				flagVar = flagVar | event.Value
+				found = true
+			}
+		}
+
+		if !found {
+			err = errors.New(fmt.Sprintf("the event %s was not found", item))
+			return
+		}
+	}
+
+	verbose := func() {
+		log.Println("watching events:")
+		for _, event := range GeneralEventBits {
+			if flagVar&event.Value == event.Value {
+				fmt.Fprintf(os.Stderr, "  %s\n", event.Name)
+			}
+		}
+	}
+
+	logFunc(verbose)
+	return
 }
 
 func (w *WatchService) Start() (err error) {
@@ -57,9 +109,7 @@ func (w *WatchService) startWorker(ch <-chan *fsnotify.FileEvent) {
 	go func() {
 		var lastExec time.Time
 		for evt := range ch {
-			if verbose {
-				log.Printf("%s: %s", getEventType(evt), evt.Name)
-			}
+			logf("%s: %s", getEventType(evt), evt.Name)
 
 			w.updateWatcherAndEntries(evt)
 
@@ -68,7 +118,7 @@ func (w *WatchService) startWorker(ch <-chan *fsnotify.FileEvent) {
 				continue
 			}
 
-			if checkPatternMatching(w.pattern, evt) && checkExecInterval(lastExec, w.interval, time.Now()) {
+			if checkPatternMatching(w.includePatternRegexp, evt) && checkExecInterval(lastExec, w.config.Interval, time.Now()) {
 				if w.isDir(evt.Name) {
 					lastExec = time.Now()
 					w.run(evt)
@@ -76,19 +126,15 @@ func (w *WatchService) startWorker(ch <-chan *fsnotify.FileEvent) {
 					lastExec = time.Now()
 					w.run(evt)
 				} else {
-					if verbose {
-						log.Printf("%s: %s dropped", getEventType(evt), evt.Name)
-					}
+					logf("%s: %s dropped", getEventType(evt), evt.Name)
 				}
 			} else {
-				if verbose {
-					log.Printf("%s: %s dropped", getEventType(evt), evt.Name)
-				}
+				logf("%s: %s dropped", getEventType(evt), evt.Name)
+
 			}
 
 		}
 	}()
-
 }
 
 func (w *WatchService) startWatcher(ch chan<- *fsnotify.FileEvent) (err error) {
@@ -123,16 +169,14 @@ func (w *WatchService) startWatcher(ch chan<- *fsnotify.FileEvent) (err error) {
 }
 
 func (w *WatchService) addWatcher() (err error) {
-	if w.recursive {
+	if w.config.Recursive {
 		err = filepath.Walk(w.path, func(path string, info os.FileInfo, err error) error {
 			if info.IsDir() {
 				relativePath := "./" + path
 				if err == nil {
 
 					w.dirs[relativePath] = true
-					if verbose {
-						log.Println("watching: ", relativePath)
-					}
+					logln("watching: ", relativePath)
 					errWatcher := w.watcher.WatchFlags(path, w.watchFlags)
 					if errWatcher != nil {
 						return errWatcher
@@ -155,14 +199,10 @@ func (w *WatchService) updateWatcherAndEntries(evt *fsnotify.FileEvent) {
 	case evt.IsCreate():
 		stat, err := os.Stat(path)
 		if err != nil {
-			if verbose {
-				log.Println(err)
-			}
+			logln(err)
 		} else {
 			if stat.IsDir() {
-				if verbose {
-					log.Println("watching: ", path)
-				}
+				logln("watching: ", path)
 				w.dirs[path] = true
 				w.watcher.WatchFlags(path, w.watchFlags)
 			}
@@ -170,9 +210,7 @@ func (w *WatchService) updateWatcherAndEntries(evt *fsnotify.FileEvent) {
 
 	case evt.IsRename(), evt.IsDelete():
 		if w.isDir(path) {
-			if verbose {
-				log.Println("remove watching: ", path)
-			}
+			logln("remove watching: ", path)
 			delete(w.dirs, path)
 			w.watcher.RemoveWatch(path)
 
@@ -193,7 +231,7 @@ func (w *WatchService) Stop() error {
 }
 
 func (w *WatchService) run(evt *fsnotify.FileEvent) {
-	for _, command := range commands {
+	for _, command := range w.config.Commands {
 		err := w.execute(command, evt)
 		if err != nil && !ContinueOnError {
 			break
@@ -213,9 +251,7 @@ func (w *WatchService) execute(command string, evt *fsnotify.FileEvent) (err err
 		cmd = exec.Command(args[0])
 	}
 
-	if verbose {
-		log.Printf("exec: %s %s\n", cmd.Path, strings.Join(cmd.Args[1:], " "))
-	}
+	logf("exec: %s %s\n", cmd.Path, strings.Join(cmd.Args[1:], " "))
 
 	buffer := &bytes.Buffer{}
 	cmd.Stderr = buffer
@@ -234,21 +270,16 @@ func (w *WatchService) execute(command string, evt *fsnotify.FileEvent) (err err
 }
 
 func verboseMsgWrapper(title string, fun func() bool) bool {
-	if verbose {
-		log.Println("[" + title + "]")
-	}
+	logln("[" + title + "]")
 	result := fun()
-	if verbose {
-		log.Printf("[RESULT: %v]", result)
-	}
+	logf("[RESULT: %v]", result)
+
 	return result
 }
 
 func checkPatternMatching(pattern *regexp.Regexp, evt *fsnotify.FileEvent) bool {
 	return verboseMsgWrapper("check filename matching the pattern", func() bool {
-		if verbose {
-			log.Printf("%s ~= %s", pattern, evt.Name)
-		}
+		logf("%s ~= %s", pattern, evt.Name)
 		matched := pattern.MatchString(evt.Name)
 		return matched
 	})
@@ -262,9 +293,7 @@ func checkExecInterval(lastExec time.Time, interval time.Duration, now time.Time
 		}
 		nextExec := lastExec.Add(interval)
 		delta := now.Sub(nextExec)
-		if verbose {
-			log.Printf("next execution time: %s, now: %s\n, delta:%s", nextExec, now, delta)
-		}
+		logf("next execution time: %s, now: %s\n, delta:%s", nextExec, now, delta)
 		return delta > 0
 	})
 }
@@ -293,9 +322,7 @@ func checkContentWasChanged(entries map[string]*FileEntry, evt *fsnotify.FileEve
 				}
 			} else {
 				contentSize, err := getFilesizeWithRetry(path)
-				if verbose {
-					log.Printf("content size: %d, err: %v", contentSize, err)
-				}
+				logf("content size: %d, err: %v", contentSize, err)
 				if err != nil {
 					log.Println(err)
 					return false
@@ -306,9 +333,7 @@ func checkContentWasChanged(entries map[string]*FileEntry, evt *fsnotify.FileEve
 				}
 
 				contentHash, err := getContentHash(path)
-				if verbose {
-					log.Printf("content hash: %d, err: %v", contentHash, err)
-				}
+				logf("content hash: %d, err: %v", contentHash, err)
 				if err != nil {
 					log.Println(err)
 					return false
@@ -324,7 +349,6 @@ func checkContentWasChanged(entries map[string]*FileEntry, evt *fsnotify.FileEve
 		}
 		return true
 	})
-
 }
 
 func applyCustomVariable(command string, evt *fsnotify.FileEvent) string {
@@ -367,9 +391,7 @@ func getFilesizeWithRetry(path string) (contentSize int64, err error) {
 	//fallback
 	time.Sleep(WritingDelay)
 	contentSize, err = getFilesize(path)
-	if verbose {
-		log.Printf("[Fallback]content size: %d, err: %v", contentSize, err)
-	}
+	logf("[Fallback]content size: %d, err: %v", contentSize, err)
 	if err != nil {
 		log.Println(err)
 		return
@@ -440,33 +462,4 @@ var GeneralEventBits = []struct {
 	{fsnotify.FSN_DELETE, "delete", "File/directory deleted from watched directory"},
 	{fsnotify.FSN_MODIFY, "modify", "File was modified or Metadata changed"},
 	{fsnotify.FSN_RENAME, "rename", "File moved out of watched directory"},
-}
-
-func getFlagsValue(events string) (flagVar uint32, err error) {
-	eventList := strings.Split(strings.Replace(events, " ", "", -1), ",")
-
-	for _, item := range eventList {
-		found := false
-		for _, event := range GeneralEventBits {
-			if item == strings.ToLower(event.Name) {
-				flagVar = flagVar | event.Value
-				found = true
-			}
-		}
-
-		if !found {
-			err = errors.New(fmt.Sprintf("the event %s was not found", item))
-			return
-		}
-	}
-
-	if verbose {
-		log.Println("watching events:")
-		for _, event := range GeneralEventBits {
-			if flagVar&event.Value == event.Value {
-				fmt.Printf("  %s\n", event.Name)
-			}
-		}
-	}
-	return
 }

@@ -7,51 +7,35 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"regexp"
 	"strings"
-	"time"
 )
 
 const (
-	Version         = "0.2.0"
+	Version         = "0.3.0"
 	Program         = "watchf"
 	ContinueOnError = false
 )
 
-const (
-	VarFilename  = "%f"
-	VarEventType = "%t"
-)
-
 var (
-	commands    StringSet
-	events      string
-	interval    time.Duration
-	stop        bool
-	showVersion bool
-	recursive   bool
-	regexExpr   string
 	verbose     bool
+	showVersion bool
+	stop        bool
+	configFile  string
+	writeConfig bool
 
-	watchFlags uint32
-	pattern    *regexp.Regexp
-	quit       = make(chan os.Signal, 1)
+	quit = make(chan os.Signal, 1)
 )
 
 func init() {
-
-	flag.Var(&commands, "c", "Add arbitrary command (repeatable)")
-	flag.StringVar(&events, "e", "all", "Listen for specific event(s) (comma separated list)")
-	flag.StringVar(&regexExpr, "p", ".*", "File name matches regular expression pattern (perl-style)")
-	flag.DurationVar(&interval, "i", time.Duration(0)*time.Millisecond, "The interval limit the frequency of the command executions, if equal to 0, there is no limit (time unit: ns/us/ms/s/m/h)")
-	flag.BoolVar(&stop, "s", false, "Stop the "+Program+" Daemon (windows is not support)")
-	flag.BoolVar(&recursive, "r", false, "Watch directories recursively")
-	flag.BoolVar(&showVersion, "v", false, "Show version")
 	flag.BoolVar(&verbose, "V", false, "Show debugging messages")
+	flag.BoolVar(&showVersion, "v", false, "Show version and exit")
+	flag.BoolVar(&stop, "s", false, "Stop the "+Program+" Daemon (windows is not support)")
+	flag.StringVar(&configFile, "f", "."+Program+".conf", "Specifies a configuration file")
+	flag.BoolVar(&writeConfig, "w", false, "Write command-line arguments to configuration file (write and exit)")
 
 	flag.Usage = func() {
 		command := os.Args[0]
-		fmt.Println("Usage:\n  " + command + " options")
+		fmt.Println("Usage:\n  " + command + " [options]")
 		fmt.Println("Options:")
 		flag.PrintDefaults()
 
@@ -68,7 +52,6 @@ func init() {
 
 		showExample()
 	}
-
 }
 
 func maxLenOfEventName() int {
@@ -86,9 +69,7 @@ func paddingStr(original string, maxLen int, char string) string {
 }
 
 func main() {
-
-	// command line parsing
-	parseOptions()
+	flag.Parse()
 
 	// stop daemon via signal
 	if stop {
@@ -96,42 +77,10 @@ func main() {
 		return
 	}
 
-	// start daemon
-	daemon := daemon.NewDaemon(Program, NewWatchService(".", watchFlags, recursive, pattern, interval, commands))
-	checkError(daemon.Start())
+	config := loadConfig()
+	daemon := startDaemon(config)
 
-	// stop daemon
 	waitForStop(daemon)
-}
-
-func parseOptions() {
-	flag.Parse()
-
-	if showVersion || verbose {
-		fmt.Println("version " + Version)
-	}
-
-	if verbose {
-		log.Println("command-line arguments", os.Args[1:])
-	}
-
-	if len(commands) == 0 && !stop {
-		flag.Usage()
-		os.Exit(-1)
-	}
-
-	var err error
-	if watchFlags, err = getFlagsValue(events); err != nil {
-		log.Println(err)
-		flag.Usage()
-		os.Exit(-1)
-	}
-
-	pattern, err = regexp.Compile(regexExpr)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(-1)
-	}
 }
 
 func stopDaemon() {
@@ -142,6 +91,55 @@ func stopDaemon() {
 	}
 }
 
+func loadConfig() (config *Config) {
+	config = GetDefaultConfig()
+
+	if showVersion || verbose {
+		fmt.Println("version " + Version)
+	}
+
+	logln("command-line arguments", os.Args[1:])
+
+	if writeConfig {
+		if err := WriteConfigToFile(config); err != nil {
+			fmt.Fprintf(os.Stderr, "cannot write configuration file: %v", err)
+		} else {
+			fmt.Println("the configuration file was saved successfully")
+			os.Exit(0)
+		}
+	}
+
+	if flag.NArg() == 0 || (flag.NFlag() == 1 && verbose) {
+		if newConfig, err := LoadConfigFromFile(); err != nil {
+			logf("cannot load configuration file: %v", err)
+		} else {
+			config = newConfig
+		}
+	}
+	logf("configuration: %+v", config)
+
+	if len(config.Commands) == 0 && !stop {
+		flag.Usage()
+		os.Exit(-1)
+	}
+
+	return
+}
+
+func startDaemon(config *Config) *daemon.Daemon {
+	service, err := NewWatchService(".", config)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	daemon := daemon.NewDaemon(Program, service)
+
+	err = daemon.Start()
+	checkError(err)
+
+	return daemon
+}
+
 func checkError(err error) {
 	if err != nil {
 		log.Println(err)
@@ -150,7 +148,6 @@ func checkError(err error) {
 }
 
 func waitForStop(daemon *daemon.Daemon) {
-
 	signal.Notify(quit, os.Kill, os.Interrupt)
 
 	<-quit
@@ -161,13 +158,20 @@ func waitForStop(daemon *daemon.Daemon) {
 	}
 }
 
-type StringSet []string
-
-func (f *StringSet) String() string {
-	return fmt.Sprint([]string(*f))
+func logln(v ...interface{}) {
+	if verbose {
+		log.Println(v...)
+	}
 }
 
-func (f *StringSet) Set(value string) error {
-	*f = append(*f, value)
-	return nil
+func logf(format string, args ...interface{}) {
+	if verbose {
+		log.Printf(format, args...)
+	}
+}
+
+func logFunc(fn func()) {
+	if verbose {
+		fn()
+	}
 }

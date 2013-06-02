@@ -1,4 +1,5 @@
 dist
 .goxc.json
+.watch.conf
 watchf.pid
 watchf
