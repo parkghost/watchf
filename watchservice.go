@@ -317,9 +317,9 @@ func checkContentWasChanged(entries map[string]*FileEntry, evt *fsnotify.FileEve
 				if newEntry, err := newFileEntry(path); err != nil {
 					log.Println(err)
 					return false
-				} else {
-					entries[path] = newEntry
 				}
+				entries[path] = newEntry
+
 			} else {
 				contentSize, err := getFilesizeWithRetry(path)
 				logf("content size: %d, err: %v", contentSize, err)
@@ -404,10 +404,8 @@ func getFilesize(filename string) (size int64, err error) {
 	st, err := os.Stat(filename)
 	if err != nil {
 		return
-	} else {
-		size = st.Size()
 	}
-
+	size = st.Size()
 	return
 }
 
