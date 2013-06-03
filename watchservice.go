@@ -314,7 +314,8 @@ func checkContentWasChanged(entries map[string]*FileEntry, evt *fsnotify.FileEve
 			}
 
 			if !ok {
-				if newEntry, err := newFileEntry(path); err != nil {
+				newEntry, err := newFileEntry(path)
+				if err != nil {
 					log.Println(err)
 					return false
 				}
