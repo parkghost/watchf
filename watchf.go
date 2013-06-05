@@ -42,7 +42,7 @@ func init() {
 		maxLen := maxLenOfEventName()
 		fmt.Println("Events:")
 		for _, e := range GeneralEventBits {
-			fmt.Printf("  %s  %s\n", paddingStr(strings.ToLower(e.Name), maxLen, " "), e.Desc)
+			fmt.Printf("  %s  %s\n", paddingLeft(strings.ToLower(e.Name), maxLen, " "), e.Desc)
 		}
 
 		fmt.Printf("Variables:\n"+
@@ -64,8 +64,11 @@ func maxLenOfEventName() int {
 	return maxLenOfName
 }
 
-func paddingStr(original string, maxLen int, char string) string {
-	return original + strings.Repeat(char, maxLen-len(original))
+func paddingLeft(original string, maxLen int, char string) string {
+	if n := maxLen - len(original); n > 0 {
+		return strings.Repeat(char, n) + original
+	}
+	return original
 }
 
 func main() {
