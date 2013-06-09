@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	Version         = "0.3.0"
+	Version         = "0.3.1"
 	Program         = "watchf"
 	ContinueOnError = false
 )
@@ -42,7 +42,7 @@ func init() {
 		maxLen := maxLenOfEventName()
 		fmt.Println("Events:")
 		for _, e := range GeneralEventBits {
-			fmt.Printf("  %s  %s\n", paddingLeft(strings.ToLower(e.Name), maxLen, " "), e.Desc)
+			fmt.Printf("  %s  %s\n", PaddingLeft(strings.ToLower(e.Name), maxLen, " "), e.Desc)
 		}
 
 		fmt.Printf("Variables:\n"+
@@ -50,7 +50,7 @@ func init() {
 			"  %s: The event type of file changes\n",
 			VarFilename, VarEventType)
 
-		showExample()
+		printExample()
 	}
 }
 
@@ -64,13 +64,6 @@ func maxLenOfEventName() int {
 	return maxLenOfName
 }
 
-func paddingLeft(original string, maxLen int, char string) string {
-	if n := maxLen - len(original); n > 0 {
-		return strings.Repeat(char, n) + original
-	}
-	return original
-}
-
 func main() {
 	flag.Parse()
 
@@ -81,15 +74,15 @@ func main() {
 	}
 
 	config := loadConfig()
-	daemon := startDaemon(config)
+	dmon := startDaemon(config)
 
-	waitForStop(daemon)
+	waitForStop(dmon)
 }
 
 func stopDaemon() {
-	daemon := daemon.NewDaemon(Program, nil)
-	if err := daemon.Stop(); err != nil {
-		fmt.Printf("cannot stop process:%d caused by:\n%s\n", daemon.GetPid(), err)
+	dmon := daemon.NewDaemon(Program, nil)
+	if err := dmon.Stop(); err != nil {
+		fmt.Printf("cannot stop process:%d caused by:\n%s\n", dmon.GetPid(), err)
 		os.Exit(-1)
 	}
 }
@@ -97,11 +90,13 @@ func stopDaemon() {
 func loadConfig() (config *Config) {
 	config = GetDefaultConfig()
 
-	if showVersion || verbose {
-		fmt.Println("version " + Version)
+	if showVersion {
+		fmt.Println("version:", Version)
+		os.Exit(0)
 	}
 
-	logln("command-line arguments", os.Args[1:])
+	Logln("version:", Version)
+	Logln("command-line arguments:", os.Args[1:])
 
 	if writeConfig {
 		if err := WriteConfigToFile(config); err != nil {
@@ -114,12 +109,12 @@ func loadConfig() (config *Config) {
 
 	if flag.NArg() == 0 || (flag.NFlag() == 1 && verbose) {
 		if newConfig, err := LoadConfigFromFile(); err != nil {
-			logf("cannot load configuration file: %v", err)
+			Logf("cannot load configuration file: %v", err)
 		} else {
 			config = newConfig
 		}
 	}
-	logf("configuration: %+v", config)
+	Logf("configuration: %+v", config)
 
 	if len(config.Commands) == 0 && !stop {
 		flag.Usage()
@@ -131,22 +126,18 @@ func loadConfig() (config *Config) {
 
 func startDaemon(config *Config) *daemon.Daemon {
 	service, err := NewWatchService(".", config)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	daemon := daemon.NewDaemon(Program, service)
-
-	err = daemon.Start()
 	checkError(err)
 
-	return daemon
+	dmon := daemon.NewDaemon(Program, service)
+	err = dmon.Start()
+	checkError(err)
+
+	return dmon
 }
 
 func checkError(err error) {
 	if err != nil {
-		log.Println(err)
-		close(quit)
+		log.Fatal(err)
 	}
 }
 
@@ -158,23 +149,5 @@ func waitForStop(daemon *daemon.Daemon) {
 		fmt.Printf(Program+" stop failed: %s\n", err)
 	} else {
 		fmt.Println(Program + " stopped")
-	}
-}
-
-func logln(v ...interface{}) {
-	if verbose {
-		log.Println(v...)
-	}
-}
-
-func logf(format string, args ...interface{}) {
-	if verbose {
-		log.Printf(format, args...)
-	}
-}
-
-func logFunc(fn func()) {
-	if verbose {
-		fn()
 	}
 }

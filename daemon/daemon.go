@@ -26,7 +26,7 @@ func (d *Daemon) Start() (err error) {
 		log.Fatalln(d.name + " is already running")
 		return
 	} else {
-		if err = ioutil.WriteFile(d.name+PidFileSuffix, []byte(strconv.Itoa(os.Getpid())), 0644); err != nil {
+		if err = ioutil.WriteFile("."+d.name+PidFileSuffix, []byte(strconv.Itoa(os.Getpid())), 0644); err != nil {
 			return
 		}
 		d.local = true
@@ -37,7 +37,7 @@ func (d *Daemon) Start() (err error) {
 func (d *Daemon) Stop() (err error) {
 	if d.IsRunning() {
 		if d.local {
-			os.Remove(d.name + PidFileSuffix)
+			os.Remove("." + d.name + PidFileSuffix)
 			return d.service.Stop()
 		} else {
 			var process *os.Process
