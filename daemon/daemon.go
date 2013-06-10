@@ -25,13 +25,12 @@ func (d *Daemon) Start() (err error) {
 	if d.IsRunning() {
 		log.Fatalln(d.name + " is already running")
 		return
-	} else {
-		if err = ioutil.WriteFile("."+d.name+PidFileSuffix, []byte(strconv.Itoa(os.Getpid())), 0644); err != nil {
-			return
-		}
-		d.local = true
-		return d.service.Start()
 	}
+	if err = ioutil.WriteFile("."+d.name+PidFileSuffix, []byte(strconv.Itoa(os.Getpid())), 0644); err != nil {
+		return
+	}
+	d.local = true
+	return d.service.Start()
 }
 
 func (d *Daemon) Stop() (err error) {
@@ -39,14 +38,14 @@ func (d *Daemon) Stop() (err error) {
 		if d.local {
 			os.Remove("." + d.name + PidFileSuffix)
 			return d.service.Stop()
-		} else {
-			var process *os.Process
-			process, err = os.FindProcess(d.pid)
-			if err != nil {
-				return
-			}
-			err = process.Signal(os.Interrupt)
 		}
+		var process *os.Process
+		process, err = os.FindProcess(d.pid)
+		if err != nil {
+			return
+		}
+		err = process.Signal(os.Interrupt)
+
 	}
 	return
 }

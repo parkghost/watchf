@@ -12,7 +12,6 @@ import (
 )
 
 const (
-	FileBlockSize           = 1 * 1024 * 1024
 	FileCloseCheckInterval  = time.Duration(20) * time.Millisecond
 	FileCloseCheckThreshold = 2
 )
