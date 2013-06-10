@@ -18,23 +18,24 @@ const (
 )
 
 func checkPatternMatching(pattern *regexp.Regexp, evt *fsnotify.FileEvent) bool {
-	return verboseMsgWrapper("check filename is matching the pattern", func() bool {
+	return decorator("check filename is matching the pattern", func() bool {
 		Logf("%s ~= %s", pattern, evt.Name)
 		matched := pattern.MatchString(evt.Name)
 		return matched
 	})
 }
 
-func verboseMsgWrapper(title string, fun func() bool) bool {
+func decorator(title string, fun func() bool) bool {
+	startTime := time.Now()
 	Logln("[" + title + "]")
 	result := fun()
-	Logf("[RESULT: %v]", result)
+	Logf("[pass: %v, time: %s]", result, time.Since(startTime))
 
 	return result
 }
 
 func checkExecInterval(lastExec time.Time, interval time.Duration, now time.Time) bool {
-	return verboseMsgWrapper("check execution interval", func() bool {
+	return decorator("check execution interval", func() bool {
 		if interval == 0 {
 			return true
 		}
@@ -46,7 +47,7 @@ func checkExecInterval(lastExec time.Time, interval time.Duration, now time.Time
 }
 
 func checkFileContentChanged(entries map[string]*FileEntry, path string) bool {
-	return verboseMsgWrapper("check the file content is changed", func() bool {
+	return decorator("check the file content is changed", func() bool {
 		contentChanged := false
 		// THINK: handle continues event from writing a big file
 		err := waitForFileClose(path)
@@ -98,23 +99,25 @@ func checkFileContentChanged(entries map[string]*FileEntry, path string) bool {
 
 func waitForFileClose(path string) (err error) {
 	Logf("wait for the file %s close", path)
-	var lastContentSize int64
+	var lastSize int64
 	var counter int
 
 	for {
-		contentSize, errFilesize := getFileSize(path)
+		currentSize, errFilesize := getFileSize(path)
 		if errFilesize != nil {
 			return errFilesize
 		}
 
-		if lastContentSize == contentSize {
+		if lastSize == currentSize {
 			counter += 1
 			if counter >= FileCloseCheckThreshold {
 				return
 			}
+		} else {
+			counter = 0
 		}
 
-		lastContentSize = contentSize
+		lastSize = currentSize
 		time.Sleep(FileCloseCheckInterval)
 	}
 }
