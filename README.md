@@ -1,7 +1,6 @@
 Watchf(v0.3.2)
 -------
-
-*Watchf is a tool to watching directory for changes and execute command*
+*Watchf is a tool for watching directory changes and run commands*
 
 Installation
 -------
