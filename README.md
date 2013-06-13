@@ -52,6 +52,11 @@ Example 4(with configuration file):
   watchf
 ```
 
+Pre-built Binaries
+-------
+[http://bit.ly/19sJFdj](http://bit.ly/19sJFdj)
+
+
 Author
 -------
 
