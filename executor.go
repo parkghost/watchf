@@ -2,6 +2,8 @@ package main
 
 import (
 	"code.google.com/p/go.exp/fsnotify"
+	"fmt"
+	"github.com/mgutz/ansi"
 	"io"
 	"log"
 	"os/exec"
@@ -31,11 +33,13 @@ func (e *Executor) execute(command string, evt *fsnotify.FileEvent) error {
 	cmd.Stderr = e.Stderr
 	cmd.Stdout = e.Stdout
 
-	log.Printf("exec: \"%s %s\"\n", cmd.Args[0], strings.Join(cmd.Args[1:], " "))
+	msg := fmt.Sprintf("exec: \"%s %s\"", cmd.Args[0], strings.Join(cmd.Args[1:], " "))
+	log.Println(ansi.Color(msg, "cyan+b"))
 	err := cmd.Run()
 
 	if err != nil {
-		log.Printf("exec: \"%s %s\" failed, err: %s\n", cmd.Args[0], strings.Join(cmd.Args[1:], " "), err)
+		msg := fmt.Sprintf("exec: \"%s %s\" failed, err: %s", cmd.Args[0], strings.Join(cmd.Args[1:], " "), err)
+		log.Println(ansi.Color(msg, "red+b"))
 	}
 
 	return err
