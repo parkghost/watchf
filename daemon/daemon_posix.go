@@ -4,7 +4,7 @@ package daemon
 
 import "syscall"
 
-func isProcessRunning(pid int) (running bool) {
+func isOSProcessRunning(pid int) (running bool) {
 	err := syscall.Kill(pid, 0)
 	return err == nil
 }
