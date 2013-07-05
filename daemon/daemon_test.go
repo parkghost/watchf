@@ -28,7 +28,6 @@ func TestForegroundDaemonStartAndStop(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	_, err = os.Stat(dmon.getPidFilename())
 	if err != nil {
 		t.Fatal("started: pid file not found")

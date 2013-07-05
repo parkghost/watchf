@@ -38,6 +38,7 @@ func (d *Daemon) Start() (err error) {
 	}
 	d.foreground = true
 	d.running = true
+	d.pid = os.Getpid()
 	return
 }
 

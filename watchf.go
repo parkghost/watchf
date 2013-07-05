@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	Version         = "0.4.0"
+	Version         = "0.4.1"
 	Program         = "watchf"
 	ContinueOnError = false
 )
@@ -95,6 +95,11 @@ func loadConfig() (config *Config) {
 		os.Exit(0)
 	}
 
+	if flag.NArg() > 0 {
+		flag.Usage()
+		os.Exit(0)
+	}
+
 	Logln("version:", Version)
 	Logln("command-line arguments:", os.Args[1:])
 
@@ -107,7 +112,7 @@ func loadConfig() (config *Config) {
 		}
 	}
 
-	if flag.NArg() == 0 || (flag.NFlag() == 1 && verbose) {
+	if flag.NFlag() == 0 || (flag.NFlag() == 1 && verbose) {
 		if newConfig, err := LoadConfigFromFile(); err != nil {
 			Logf("cannot load configuration file: %v", err)
 		} else {
