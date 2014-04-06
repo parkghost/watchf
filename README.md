@@ -53,7 +53,7 @@ Example 4(with configuration file):
 
 Pre-built Binaries
 -------
-[http://bit.ly/19sJFdj](http://bit.ly/19sJFdj)
+[http://bit.ly/18Cjzod](http://bit.ly/18Cjzod)
 
 
 Author

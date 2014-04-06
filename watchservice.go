@@ -1,8 +1,6 @@
 package main
 
 import (
-	"code.google.com/p/go.exp/fsnotify"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -10,6 +8,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"code.google.com/p/go.exp/fsnotify"
 )
 
 const (
@@ -67,7 +67,7 @@ func calculateWatchFlags(events []string) (watchFlags uint32, err error) {
 		}
 
 		if !found {
-			err = errors.New(fmt.Sprintf("the event %s was not found", event))
+			err = fmt.Errorf("the event %s was not found", event)
 			return
 		}
 	}
@@ -217,7 +217,7 @@ func (w *WatchService) syncWatchersAndCaches(evt *fsnotify.FileEvent) {
 			w.watcher.RemoveWatch(path)
 
 			dirPath := path + string(os.PathSeparator)
-			for entryPath, _ := range w.entries {
+			for entryPath := range w.entries {
 				if strings.HasPrefix(entryPath, dirPath) {
 					delete(w.entries, entryPath)
 				}

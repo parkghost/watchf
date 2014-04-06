@@ -3,11 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/parkghost/watchf/daemon"
 	"log"
 	"os"
 	"os/signal"
 	"strings"
+
+	"github.com/parkghost/watchf/daemon"
 )
 
 const (

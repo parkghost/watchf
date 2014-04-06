@@ -2,13 +2,14 @@ package main
 
 import (
 	"bufio"
-	"code.google.com/p/go.exp/fsnotify"
 	"hash/adler32"
 	"io"
 	"log"
 	"os"
 	"regexp"
 	"time"
+
+	"code.google.com/p/go.exp/fsnotify"
 )
 
 const (
@@ -108,7 +109,7 @@ func waitForFileClose(path string) (err error) {
 		}
 
 		if lastSize == currentSize {
-			counter += 1
+			counter++
 			if counter >= FileCloseCheckThreshold {
 				return
 			}

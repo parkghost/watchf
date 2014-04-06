@@ -100,7 +100,7 @@ func (d *Daemon) Stop() (err error) {
 
 	d.running = isOSProcessRunning(d.pid)
 	if d.running {
-		return errors.New(fmt.Sprintf("cannot stop the process:%d", d.pid))
+		return fmt.Errorf("cannot stop the process:%d", d.pid)
 	}
 
 	return

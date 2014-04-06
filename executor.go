@@ -1,13 +1,14 @@
 package main
 
 import (
-	"code.google.com/p/go.exp/fsnotify"
 	"fmt"
-	"github.com/mgutz/ansi"
 	"io"
 	"log"
 	"os/exec"
 	"strings"
+
+	"code.google.com/p/go.exp/fsnotify"
+	"github.com/mgutz/ansi"
 )
 
 const (
