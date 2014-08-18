@@ -7,8 +7,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"code.google.com/p/go.exp/fsnotify"
 	"github.com/mgutz/ansi"
+	"gopkg.in/fsnotify.v0"
 )
 
 const (
