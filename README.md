@@ -1,4 +1,4 @@
-Watchf(v0.4.1)
+Watchf(v0.4.2)
 -------
 *Watchf is a tool for watching directory changes and run commands*
 
@@ -53,7 +53,7 @@ Example 4(with configuration file):
 
 Pre-built Binaries
 -------
-[http://bit.ly/18Cjzod](http://bit.ly/18Cjzod)
+[Link](https://github.com/parkghost/watchf/releases)
 
 
 Author
