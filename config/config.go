@@ -50,7 +50,7 @@ func FromFile(file string) (*Config, error) {
 
 	dec := json.NewDecoder(f)
 
-	var cfg *Config
+	cfg := new(Config)
 	err = dec.Decode(cfg)
 	if err != nil {
 		return nil, err
