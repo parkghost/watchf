@@ -6,7 +6,7 @@ Watchf
 
 Screenshot
 -------
-![Screenshot](http://i.imgur.com/BA3uWpm.png)
+![Screenshot](http://i.imgur.com/blF6Hh7.png)
 
 Installation
 -------

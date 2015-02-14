@@ -70,7 +70,7 @@ func (c cmdAction) Run() StepOp {
 	})
 	msg := fmt.Sprintf("Run: %s", command)
 	if err != nil {
-		entry.WithField("error", err).Warn(ansi.Color(msg, "red+b"))
+		entry.WithField("error", err).Error(ansi.Color(msg, "red+b"))
 	} else {
 		entry.Info(ansi.Color(msg, "cyan+b"))
 	}
