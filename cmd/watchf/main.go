@@ -10,6 +10,7 @@ import (
 	"github.com/parkghost/watchf/config"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/shiena/ansicolor"
 	"golang.org/x/net/context"
 )
 
@@ -49,7 +50,7 @@ Variables:
 		printExample()
 	}
 
-	log.SetOutput(os.Stderr)
+	log.SetOutput(ansicolor.NewAnsiColorWriter(os.Stderr))
 }
 
 func main() {
