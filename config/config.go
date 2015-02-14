@@ -112,5 +112,5 @@ func (p *Pattern) UnmarshalJSON(data []byte) error {
 }
 
 func (p *Pattern) MarshalJSON() ([]byte, error) {
-	return []byte(strconv.Quote(p.String())), nil
+	return []byte(strconv.Quote(p.Regexp.String())), nil
 }

@@ -4,6 +4,10 @@ Watchf
 
 *Watchf is a tool for watching directory changes and run commands*
 
+Screenshot
+-------
+![Screenshot](http://i.imgur.com/BA3uWpm.png)
+
 Installation
 -------
 1. [install Go into your environment](http://golang.org/doc/install) 
@@ -15,7 +19,6 @@ go get github.com/parkghost/watchf/...
 
 Usage
 -------
-
 ```
 Usage:
   watchf [options]
@@ -24,7 +27,7 @@ Options:
   -V=false: Show debugging messages
   -c=[]: Add arbitrary command (repeatable)
   -e=[all]: Listen for specific event(s) (comma separated list)
-  -exclude=".watchf.conf|.git|.pid": Do not process any events whose file name matches specified regular expression pattern (perl-style)
+  -exclude="^\.": Do not process any events whose file name matches specified regular expression pattern (perl-style)
   -f=".watchf.conf": Specifies a configuration file
   -i=100ms: The interval limit the frequency of the command executions, if equal to 0, there is no limit (time unit: ns/us/ms/s/m/h)
   -include=".*": Process any events whose file name matches file name matches specified regular expression pattern (perl-style)
@@ -51,10 +54,6 @@ Example 3(with configuration file):
   watchf -e "write,remove,create" -c "go test" -c "go vet" -include ".go$" -w
   watchf
 ```
-
-Screenshot
--------
-![Screenshot](http://i.imgur.com/YjVHPky.png)
 
 Binaries
 -------

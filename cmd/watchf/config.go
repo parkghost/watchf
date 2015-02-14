@@ -23,7 +23,7 @@ func (f *stringSet) Set(value string) error {
 var defaultConfig = &config.Config{
 	Events:         []string{"all"},
 	IncludePattern: config.Pattern{Regexp: regexp.MustCompile(".*")},
-	ExcludePattern: config.Pattern{Regexp: regexp.MustCompile(".watchf.conf|.git|.pid")},
+	ExcludePattern: config.Pattern{Regexp: regexp.MustCompile("^\\.")},
 	Commands:       []string{},
 }
 

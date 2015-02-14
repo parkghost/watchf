@@ -96,17 +96,18 @@ func (ws *WatchService) init() error {
 		return err
 	}
 
-	log.Debugf("watching: %s", ws.path)
-	err = ws.watcher.Add(ws.path)
-	if err != nil {
-		return err
-	}
-
 	if ws.recursive {
 		err = ws.addSubFolders()
 		if err != nil {
 			return err
 		}
+		return nil
+	}
+
+	log.Debugf("watching: %s", ws.path)
+	err = ws.watcher.Add(ws.path)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -114,20 +115,24 @@ func (ws *WatchService) init() error {
 
 func (ws *WatchService) addSubFolders() error {
 	return filepath.Walk(ws.path, func(path string, info os.FileInfo, errPath error) error {
-		exclude := ws.excludeRE.MatchString(path)
-		if info.IsDir() && !exclude {
-			relativePath := "./" + path
-			if errPath == nil {
-				log.Debugf("watching: %s", relativePath)
-				err := ws.watcher.Add(path)
-				if err != nil {
-					return err
-				}
-			} else {
-				log.Debugf("skip dir %s, caused by: %s", relativePath, errPath)
+		if info.IsDir() {
+			if errPath != nil {
+				log.WithField("error", errPath).Debugf("skipped dir %s", path)
 				return filepath.SkipDir
 			}
+
+			if path != "." && ws.excludeRE.MatchString(path) {
+				log.Debugf("skipped dir %s", path)
+				return filepath.SkipDir
+			}
+
+			log.Debugf("watching: %s", path)
+			err := ws.watcher.Add(path)
+			if err != nil {
+				return err
+			}
 		}
+
 		return nil
 	})
 }
@@ -184,14 +189,15 @@ func (h *limitedHandler) Handle(ctx context.Context, evt fsnotify.Event) {
 		return
 	}
 
-	included := h.includeRE.MatchString(evt.Name)
-	log.WithField("match", included).Debugf("check includePattern %s ~= %s ", h.includeRE, evt.Name)
+	filename := filepath.Base(evt.Name)
+	included := h.includeRE.MatchString(filename)
+	log.WithField("match", included).Debugf("check includePattern %s ~= %s ", h.includeRE, filename)
 	if !included {
 		return
 	}
 
-	excluded := h.excludeRE.MatchString(evt.Name)
-	log.WithField("match", excluded).Debugf("check excludePattern %s ~= %s ", h.excludeRE, evt.Name)
+	excluded := h.excludeRE.MatchString(filename)
+	log.WithField("match", excluded).Debugf("check excludePattern %s ~= %s ", h.excludeRE, filename)
 	if excluded {
 		return
 	}
