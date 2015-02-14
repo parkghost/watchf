@@ -1,5 +1,7 @@
-Watchf(v0.4.2)
+Watchf
 -------
+[![Build Status](https://travis-ci.org/parkghost/watchf.png)](https://travis-ci.org/parkghost/watchf)
+
 *Watchf is a tool for watching directory changes and run commands*
 
 Installation
@@ -8,9 +10,7 @@ Installation
 2. install watchf
 
 ```
-go get github.com/parkghost/watchf
-go build github.com/parkghost/watchf
-sudo mv watchf /usr/bin/watchf
+go get github.com/parkghost/watchf/...
 ```
 
 Usage
@@ -19,50 +19,46 @@ Usage
 ```
 Usage:
   watchf [options]
+
 Options:
   -V=false: Show debugging messages
   -c=[]: Add arbitrary command (repeatable)
   -e=[all]: Listen for specific event(s) (comma separated list)
+  -exclude=".watchf.conf|.git|.pid": Do not process any events whose file name matches specified regular expression pattern (perl-style)
   -f=".watchf.conf": Specifies a configuration file
-  -i=0: The interval limit the frequency of the command executions, if equal to 0, there is no limit (time unit: ns/us/ms/s/m/h)
-  -p=".*": File name matches regular expression pattern (perl-style)
+  -i=100ms: The interval limit the frequency of the command executions, if equal to 0, there is no limit (time unit: ns/us/ms/s/m/h)
+  -include=".*": Process any events whose file name matches file name matches specified regular expression pattern (perl-style)
   -r=false: Watch directories recursively
-  -s=false: Stop the watchf Daemon (windows is not support)
-  -v=false: Show version and exit
   -w=false: Write command-line arguments to configuration file (write and exit)
+
 Events:
-  all     Create/Delete/Modify/Rename
+     all  Create/Write/Remove/Rename/Chmod
   create  File/directory created in watched directory
-  delete  File/directory deleted from watched directory
-  modify  File was modified or Metadata changed
+  write   File written in watched directory
+  remove  File/directory deleted from watched directory
   rename  File moved out of watched directory
+  chmod   File Metadata changed
+
 Variables:
-  %f: The filename of changed file
-  %t: The event type of file changes
+      %f  The filename of changed file
+      %t  The event type of file changes
+
 Example 1:
-  watchf -e "modify,delete" -c "go vet" -c "go test" -c "go install" -p "\.go$"
+  watchf -e "write,remove,create" -c "go test" -c "go vet" -include ".go$"
 Example 2(with custom variable):
   watchf -c "process.sh %f %t"
-Example 3(with daemon):
-  watchf -r -c "rsync -aq $SRC $DST" &
-  watchf -s
-Example 4(with configuration file):
-  watchf -e "modify,delete" -c "go vet" -c "go test" -c "go install" -p "\.go$" -w
+Example 3(with configuration file):
+  watchf -e "write,remove,create" -c "go test" -c "go vet" -include ".go$" -w
   watchf
 ```
 
-Pre-built Binaries
+Screenshot
+-------
+![Screenshot](http://i.imgur.com/YjVHPky.png)
+
+Binaries
 -------
 [Link](https://github.com/parkghost/watchf/releases)
-
-
-Author
--------
-
-**Brandon Chen**
-
-+ http://brandonc.me
-+ http://github.com/parkghost
 
 License
 ---------------------
