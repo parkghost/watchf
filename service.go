@@ -20,6 +20,11 @@ type Handler interface {
 	Handle(context.Context, fsnotify.Event)
 }
 
+type Service interface {
+	Start() error
+	Stop() error
+}
+
 type WatchService struct {
 	path      string
 	recursive bool
@@ -33,7 +38,7 @@ type WatchService struct {
 	cancelFn context.CancelFunc
 }
 
-func New(ctx context.Context, cfg *config.Config, path string, handler Handler) (*WatchService, error) {
+func New(ctx context.Context, cfg *config.Config, path string, handler Handler) (Service, error) {
 	ws := new(WatchService)
 	ws.path = path
 	ws.recursive = cfg.Recursive
