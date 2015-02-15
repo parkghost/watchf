@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/parkghost/watchf/config"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 var defaultConfig = &config.Config{
@@ -26,9 +28,10 @@ func init() {
 }
 
 func loadConfig() (*config.Config, error) {
-	if flag.NFlag() > 1 {
+	if len(defaultConfig.Commands) > 0 {
 		return defaultConfig, nil
 	}
+	log.Debugf("Load configuration from file: %s", configFile)
 	return config.FromFile(configFile)
 }
 
