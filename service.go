@@ -34,6 +34,8 @@ type WatchService struct {
 	handler  Handler
 	ctx      context.Context
 	cancelFn context.CancelFunc
+
+	dirs map[string]struct{}
 }
 
 func (ws *WatchService) Start() error {
@@ -60,7 +62,7 @@ func (ws *WatchService) init() error {
 	}
 
 	if ws.recursive {
-		err = ws.addSubFolders()
+		err = ws.addSubFolders(ws.path)
 		if err != nil {
 			return err
 		}
@@ -75,20 +77,21 @@ func (ws *WatchService) init() error {
 	return nil
 }
 
-func (ws *WatchService) addSubFolders() error {
-	return filepath.Walk(ws.path, func(path string, info os.FileInfo, errPath error) error {
+func (ws *WatchService) addSubFolders(root string) error {
+	return filepath.Walk(root, func(path string, info os.FileInfo, errPath error) error {
 		if info.IsDir() {
 			if errPath != nil {
-				log.WithField("error", errPath).Debugf("Skipped dir %s", path)
+				log.WithField("error", errPath).Debugf("Skipped dir: %s", path)
 				return filepath.SkipDir
 			}
 
 			if path != "." && ws.excludeRE.MatchString(path) {
-				log.Debugf("Skipped dir %s", path)
+				log.Debugf("Skipped dir: %s", path)
 				return filepath.SkipDir
 			}
 
 			log.Debugf("Watching: %s", path)
+			ws.dirs[path] = struct{}{}
 			err := ws.watcher.Add(path)
 			if err != nil {
 				return err
@@ -118,6 +121,10 @@ func (ws *WatchService) run() {
 }
 
 func (ws *WatchService) dispatch(evt fsnotify.Event) {
+	if ws.recursive && evt.Name != "." {
+		ws.syncWatcher(evt)
+	}
+
 	if ws.flags&evt.Op == 0 {
 		log.Debugf("Skipped event: %s %s", opName(evt.Op), evt.Name)
 		return
@@ -125,6 +132,66 @@ func (ws *WatchService) dispatch(evt fsnotify.Event) {
 
 	log.Infof("New event: %s %s", opName(evt.Op), evt.Name)
 	ws.handler.Handle(ws.ctx, evt)
+}
+
+func (ws *WatchService) syncWatcher(evt fsnotify.Event) {
+	path := evt.Name
+	if strings.HasPrefix(path, "./") {
+		path = path[2:]
+	}
+	isDir, err := isDir(path, ws.dirs)
+	if err != nil {
+		log.Warnf("SyncWatcher(stat): %s", err)
+		return
+	}
+	if !isDir {
+		return
+	}
+
+	switch {
+	case isCreate(evt):
+		err := ws.addSubFolders(path)
+		if err != nil {
+			log.Warnf("SyncWatcher(scan): %s", err)
+		}
+	case isRemove(evt), isRename(evt):
+		for ph := range ws.dirs {
+			if strings.HasPrefix(ph, path) {
+				log.Debugf("Stop watching: %s", ph)
+				delete(ws.dirs, ph)
+				err = ws.watcher.Remove(ph)
+				if err != nil {
+					log.Warnf("SyncWatcher(rm): %s", err)
+				}
+			}
+		}
+	}
+}
+
+func isDir(path string, cache map[string]struct{}) (bool, error) {
+	if _, found := cache[path]; found {
+		return true, nil
+	}
+	f, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return f.IsDir(), nil
+}
+
+func isCreate(evt fsnotify.Event) bool {
+	return evt.Op&fsnotify.Create == fsnotify.Create
+}
+
+func isRemove(evt fsnotify.Event) bool {
+	return evt.Op&fsnotify.Remove == fsnotify.Remove
+}
+
+func isRename(evt fsnotify.Event) bool {
+	return evt.Op&fsnotify.Rename == fsnotify.Rename
 }
 
 func (ws *WatchService) Stop() error {
@@ -140,6 +207,9 @@ func New(ctx context.Context, cfg *config.Config, path string, handler Handler) 
 	ws.flags = flags(cfg.Events)
 	ws.handler = handler
 	ws.ctx, ws.cancelFn = context.WithCancel(ctx)
+	if ws.recursive {
+		ws.dirs = make(map[string]struct{})
+	}
 	return ws, nil
 }
 
