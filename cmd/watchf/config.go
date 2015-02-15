@@ -9,17 +9,6 @@ import (
 	"github.com/parkghost/watchf/config"
 )
 
-type stringSet []string
-
-func (f *stringSet) String() string {
-	return fmt.Sprint([]string(*f))
-}
-
-func (f *stringSet) Set(value string) error {
-	*f = append(*f, value)
-	return nil
-}
-
 var defaultConfig = &config.Config{
 	Events:         []string{"all"},
 	IncludePattern: config.Pattern{Regexp: regexp.MustCompile(".*")},
@@ -40,6 +29,16 @@ func loadConfig() (*config.Config, error) {
 	if flag.NFlag() > 1 {
 		return defaultConfig, nil
 	}
-
 	return config.FromFile(configFile)
+}
+
+type stringSet []string
+
+func (f *stringSet) String() string {
+	return fmt.Sprint([]string(*f))
+}
+
+func (f *stringSet) Set(value string) error {
+	*f = append(*f, value)
+	return nil
 }

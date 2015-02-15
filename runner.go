@@ -52,19 +52,18 @@ type cmdAction struct {
 }
 
 func (c cmdAction) Run() StepOp {
-	command := evaluate(c.command, c.event)
-	args := strings.Fields(command)
+	start := time.Now()
 
 	var cmd *exec.Cmd
+	command := evaluate(c.command, c.event)
+	args := strings.Fields(command)
 	if len(args) > 1 {
 		cmd = exec.Command(args[0], args[1:]...)
 	} else {
 		cmd = exec.Command(args[0])
 	}
 
-	start := time.Now()
 	out, err := cmd.CombinedOutput()
-
 	entry := log.WithFields(log.Fields{
 		"elapsed": time.Now().Sub(start),
 	})
@@ -81,14 +80,12 @@ func (c cmdAction) Run() StepOp {
 	if err != nil {
 		return Halt
 	}
-
 	return Continue
 }
 
 func evaluate(cmd string, evt fsnotify.Event) string {
 	cmd = strings.Replace(cmd, "%f", evt.Name, -1)
 	cmd = strings.Replace(cmd, "%t", opName(evt.Op), -1)
-
 	return cmd
 }
 
@@ -113,6 +110,5 @@ func opName(op fsnotify.Op) string {
 	if buffer.Len() == 0 {
 		return ""
 	}
-
 	return buffer.String()[1:]
 }

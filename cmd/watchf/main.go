@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 
 	"github.com/parkghost/watchf"
 	"github.com/parkghost/watchf/config"
@@ -29,7 +30,6 @@ func init() {
 	flag.BoolVar(&verbose, "V", false, "Show debugging messages")
 	flag.StringVar(&configFile, "f", "."+Program+".conf", "Specifies a configuration file")
 	flag.BoolVar(&writeConfig, "w", false, "Write command-line arguments to configuration file (write and exit)")
-
 	flag.Usage = func() {
 		fmt.Println("Usage:\n  " + os.Args[0] + " [options]\n")
 		fmt.Println("Options:")
@@ -63,8 +63,8 @@ func main() {
 	if verbose {
 		log.SetLevel(log.DebugLevel)
 	}
-	log.Infof("Version: %s", Version)
-	log.Debugf("command-line: %s", os.Args[1:])
+	log.Infof("%s(%s)", strings.Title(Program), Version)
+	log.Debugf("Command-Line: %s", os.Args[1:])
 
 	if writeConfig {
 		handleWriteConfig()
@@ -74,32 +74,38 @@ func main() {
 	var cfg *config.Config
 	var err error
 	if cfg, err = loadConfig(); err != nil {
-		log.Fatal("unable to load configuration:", err)
+		log.Fatal("Unable to load configuration:", err)
 	}
-	log.Debugf("config: %+v", cfg)
-
+	log.Debugf("Config: %+v", cfg)
 	if err = cfg.Validate(); err != nil {
-		log.Fatal("invalid config:", err)
+		log.Fatal("Invalid config:", err)
 	}
 
 	service, err := watchf.New(context.Background(), cfg, ".", watchf.NewLimitedHandler(cfg))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Init WatchService failed: %s", err)
 	}
-
-	service.Start()
+	log.Debug("Starting WatchService")
+	err = service.Start()
+	if err != nil {
+		log.Fatalf("Start WatchService failed: %s", err)
+	}
+	log.Debug("Started WatchService")
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Kill, os.Interrupt)
-
 	<-quit
-	service.Stop()
+	log.Debug("Stopping WatchService")
+	err = service.Stop()
+	if err != nil {
+		log.Fatalf("Stop WatchService failed: %s", err)
+	}
+	log.Debug("Stopped WatchService")
 }
 
 func handleWriteConfig() {
 	if err := defaultConfig.SaveToFile(configFile); err != nil {
-		log.Fatalf("cannot write configuration file: %v", err)
+		log.Fatalf("Cannot write configuration to file: %v", err)
 	}
-
 	log.Info("The configuration file was saved successfully")
 }
