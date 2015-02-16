@@ -1,4 +1,5 @@
 dist
 .watchf.conf
+.goxc.json
 TODO.md
 cmd/watchf/watchf
