@@ -1,5 +1,7 @@
+cmd/watchf/watchf
 dist
+.out
+.watchf.pid
 .watchf.conf
 .goxc.json
 TODO.md
-cmd/watchf/watchf

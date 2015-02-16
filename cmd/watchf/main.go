@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/parkghost/watchf"
+	"github.com/parkghost/watchf/bg"
 	"github.com/parkghost/watchf/config"
 
 	log "github.com/Sirupsen/logrus"
@@ -85,6 +86,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Init WatchService failed: %s", err)
 	}
+	service, err = bg.Init(Program, service)
+	if err != nil {
+		log.Fatalf("Init background process failed: %s", err)
+	}
+
 	log.Debug("Starting WatchService")
 	err = service.Start()
 	if err != nil {
