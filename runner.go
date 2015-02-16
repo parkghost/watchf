@@ -64,14 +64,16 @@ func (c cmdAction) Run() StepOp {
 	}
 
 	out, err := cmd.CombinedOutput()
-	entry := log.WithFields(log.Fields{
-		"elapsed": time.Now().Sub(start),
-	})
-	msg := fmt.Sprintf("Run: %s", command)
+	elapsed := time.Now().Sub(start)
 	if err != nil {
-		entry.WithField("error", err).Error(ansi.Color(msg, "red+b"))
+		log.WithFields(log.Fields{
+			"error":   err,
+			"elapsed": elapsed,
+		}).Error(highlight(fmt.Sprintf("Run: %s", command), "red+b"))
 	} else {
-		entry.Info(ansi.Color(msg, "cyan+b"))
+		log.WithFields(log.Fields{
+			"elapsed": time.Now().Sub(start),
+		}).Info(highlight(fmt.Sprintf("Run: %s", command), "cyan+b"))
 	}
 	if len(out) > 0 {
 		fmt.Print(string(out))
@@ -81,6 +83,17 @@ func (c cmdAction) Run() StepOp {
 		return Halt
 	}
 	return Continue
+}
+
+func highlight(text string, color string) string {
+	if !isTerminal() {
+		return text
+	}
+	return ansi.Color(text, color)
+}
+
+func isTerminal() bool {
+	return log.IsTerminal()
 }
 
 func evaluate(cmd string, evt fsnotify.Event) string {

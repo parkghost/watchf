@@ -63,7 +63,7 @@ func main() {
 	if verbose {
 		log.SetLevel(log.DebugLevel)
 	}
-	log.Infof("%s(%s)", strings.Title(Program), Version)
+	log.Debugf("%s(%s)", strings.Title(Program), Version)
 	log.Debugf("Command-Line: %s", os.Args[1:])
 
 	if writeConfig {

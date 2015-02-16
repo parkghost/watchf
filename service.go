@@ -130,7 +130,7 @@ func (ws *WatchService) dispatch(evt fsnotify.Event) {
 		return
 	}
 
-	log.Infof("New event: %s %s", opName(evt.Op), evt.Name)
+	log.Debugf("New event: %s %s", opName(evt.Op), evt.Name)
 	ws.handler.Handle(ws.ctx, evt)
 }
 
